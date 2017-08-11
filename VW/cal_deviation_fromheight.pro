@@ -28,6 +28,34 @@ FUNCTION draw_Deviation_FromHeight_InPitchs,height,Pitch_low,Pitch_high,h_offset
     font_name = 'Microsoft Yahei')
 END
 
+;绘制不同高度下，高度偏差造成的误差
+;pitch_camera:摄像头俯仰角
+;h_lowest：最低高度
+;h_highest:最高高度
+;H_offset:偏差高度
+FUNCTION draw_Deviation_FromHeight_InHeights,pitch_camera,h_lowest,h_highest,H_offset
+  heights = findgen(h_highest-h_lowest)
+  heights += h_lowest+1
+  yaw  = 30
+  roll = 0
+  offsets = findgen(h_highest - h_lowest)
+  for i=0,heights.LENGTH-1 do begin
+    offsets(i)= cal_Deviation_FromHeight(heights[i],H_offset,yaw,pitch_camera,roll);
+  endfor
+  ;直接绘图
+  ;DEVICE,Decomposed = 1
+  ;!P.BACKGROUND ='FFFFFF'xl
+  ;!P.COLOR ='000000'xl
+  ;Window,Xsize=800,Ysize =400
+  ;plot,heights,offsets,TITLE='绘制不同高度下，高度偏差造成的误差'
+  ;对象绘图
+  p=plot(heights,offsets,$
+    TITLE=strcompress('摄像头-方向角：'+String(yaw)+'°； 俯仰角'+String(pitch_camera)+'°；，不同高度下，高度偏差造成的误差'),$
+    xtitle = '高度（米）',$
+    ytitle = '误差距离（米）',$
+    font_name = 'Microsoft Yahei')
+END
+
 
 ;高度偏差的影响
 ;H:   高度
@@ -44,7 +72,7 @@ FUNCTION cal_Deviation_FromHeight,Elevation,Ele_Deviation,yaw_plane,pitch_plane,
   f = !F_G
   CCDwidth = 2.0*tanD(FOV_Horizontal/2.0)*f
   CCDheight = 2.0*tanD(FOV_VERTICAL/2.0)*f
-  position = Convert_Camera2Map(0,CCDwidth/2,CCDheight/2,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,ELEVATION)
+  position = Convert_Camera2Map(0,0.01,0.01,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,ELEVATION)
   Elevation_deviation = Elevation + Ele_Deviation
   position_Deviation = Convert_Camera2Map(0,CCDwidth/2,CCDheight/2,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,Elevation_deviation)
   ;经纬度偏差
