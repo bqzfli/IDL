@@ -1,19 +1,162 @@
-;不同俯仰角度下，高度偏差造成的误差
+
+;绝对定位_高度偏差的影响，不同观测高度、俯仰角
+;H:   高度
+;H_OffSet: 高度误差
+;yaw_plane: 飞机航向角
+;pitch_plane: 飞机俯仰角
+;roll_plane:  飞机横滚角
+FUNCTION cal_Deviation_FromHeight,Elevation,Ele_Deviation,yaw_plane,pitch_plane,roll_plane
+  initial
+  X = 946567.369900695
+  Y = 4354520.61702462
+  FOV_Horizontal = !FOV_HORIZONTAL
+  Fov_vertical = !FOV_VERTICAL
+  f = !F_G
+  CCDwidth = 2.0*tanD(FOV_Horizontal/2.0)*f
+  CCDheight = 2.0*tanD(FOV_VERTICAL/2.0)*f
+  c_x = CCDwidth/2;
+  c_y = CCDheight/2;
+  position = Convert_Camera2Map(0,c_x,c_y,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,ELEVATION)
+  Elevation_deviation = Elevation + Ele_Deviation
+  ;position_Deviation = Convert_Camera2Map(0,CCDwidth/2,CCDheight/2,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,Elevation_deviation)
+  position_Deviation = Convert_Camera2Map(0,c_x,c_y,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,Elevation_deviation)
+
+  ;经纬度偏差
+  x_deviation = position_Deviation["X"]-position["X"]
+  y_deviation = position_Deviation["Y"]-position["Y"]
+  ;距离偏差
+  ;偏差距离：平面直角坐标
+  offset = (x_deviation^2+y_deviation^2)^0.5
+  return, offset
+END
+
+;绝对定位_高度偏差的影响，距中心点不同距离或位置的目标点
+;ccd_x 距离中心点的x距离
+;ccd_y 距离中心点的y距离
+;H:   高度
+;H_OffSet: 高度误差
+;yaw_plane: 飞机航向角
+;pitch_plane: 飞机俯仰角
+;roll_plane:  飞机横滚角
+FUNCTION cal_Deviation_From_CCD,ccd_x_propotion,ccd_y_propotion,Elevation,Ele_Deviation,yaw_plane,pitch_plane,roll_plane
+  initial
+  X = 946567.369900695
+  Y = 4354520.61702462
+  FOV_Horizontal = !FOV_HORIZONTAL
+  Fov_vertical = !FOV_VERTICAL
+  f = !F_G
+  CCDwidth = 2.0*tanD(FOV_Horizontal/2.0)*f
+  CCDheight = 2.0*tanD(FOV_VERTICAL/2.0)*f
+  ccd_x = CCDwidth/2*ccd_x_propotion
+  ccd_y = CCDheight/2*ccd_y_propotion
+  position = Convert_Camera2Map(0,ccd_x,ccd_y,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,ELEVATION)
+  Elevation_deviation = Elevation + Ele_Deviation
+  ;position_Deviation = Convert_Camera2Map(0,CCDwidth/2,CCDheight/2,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,Elevation_deviation)
+  position_Deviation = Convert_Camera2Map(0,ccd_x,ccd_y,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,Elevation_deviation)
+
+  ;经纬度偏差
+  x_deviation = position_Deviation["X"]-position["X"]
+  y_deviation = position_Deviation["Y"]-position["Y"]
+  ;距离偏差
+  ;偏差距离：平面直角坐标
+  offset = (x_deviation^2+y_deviation^2)^0.5
+  return, offset
+END
+
+;距离量算_高度偏差的影响，不同观测高度、俯仰角
+;c_x_change 水平变化
+;c_y_change 竖直变化
+;H:   高度
+;H_OffSet: 高度误差
+;yaw_plane: 飞机航向角
+;pitch_plane: 飞机俯仰角
+;roll_plane:  飞机横滚角
+FUNCTION cal_DistanceMeasure_Deviation_FromHeight,c_x_change,c_y_change,Elevation,Ele_Deviation,yaw_plane,pitch_plane,roll_plane
+  initial
+  X = 946567.369900695
+  Y = 4354520.61702462
+  FOV_Horizontal = !FOV_HORIZONTAL
+  Fov_vertical = !FOV_VERTICAL
+  f = !F_G
+  CCDwidth  = 2.0*tanD(FOV_Horizontal/2.0)*f
+  CCDheight = 2.0*tanD(FOV_VERTICAL  /2.0)*f
+  c_x = CCDwidth /4;
+  c_y = CCDheight/4;
+  ;无偏差状态下的距离
+  position1 = Convert_Camera2Map(0,c_x,c_y,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,ELEVATION)  
+  position2 = Convert_Camera2Map(0,c_x+c_x_change,c_y+c_y_change,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,ELEVATION)
+  x_distance = position1["X"]-position2["X"]
+  y_distance = position1["Y"]-position2["Y"]
+  distance_1_2 = (x_distance ^ 2 + y_distance ^ 2) ^ 0.5
+  ;偏差状态下的距离
+  Elevation_deviation = Elevation + Ele_Deviation
+  position_1_Deviation = Convert_Camera2Map(0,c_x,c_y,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,Elevation_deviation)
+  position_2_Deviation = Convert_Camera2Map(0,c_x+c_x_change,c_y+c_y_change,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,Elevation_deviation)
+  x_distance_deviation = position_1_Deviation["X"]-position_2_Deviation["X"]
+  y_distance_deviation = position_1_Deviation["Y"]-position_2_Deviation["Y"]
+  distance_1_2_deviation = (x_distance_deviation ^ 2 + y_distance_deviation ^ 2) ^ 0.5
+    
+  ;距离偏差
+  ;偏差距离：平面直角坐标
+  offset = ((distance_1_2_deviation - distance_1_2)^2)^0.5
+  return, offset
+END
+
+;距离量算_高度偏差的影响，距中心点不同距离或位置的目标点
+;ccd_x 距离中心点的x距离
+;ccd_y 距离中心点的y距离
+;H:   高度
+;H_OffSet: 高度误差
+;yaw_plane: 飞机航向角
+;pitch_plane: 飞机俯仰角
+;roll_plane:  飞机横滚角
+FUNCTION cal_DistanceMeasure_Deviation_From_CCD,ccd_x_propotion,ccd_y_propotion,Elevation,Ele_Deviation,yaw_plane,pitch_plane,roll_plane
+  
+  initial
+  X = 946567.369900695
+  Y = 4354520.61702462
+  FOV_Horizontal = !FOV_HORIZONTAL
+  Fov_vertical = !FOV_VERTICAL
+  f = !F_G
+  CCDwidth  = 2.0 * tanD(FOV_Horizontal/2.0) * f
+  CCDheight = 2.0 * tanD(FOV_VERTICAL  /2.0) * f
+  ccd_x = CCDwidth / 2 * ccd_x_propotion
+  ccd_y = CCDheight/ 2 * ccd_y_propotion
+  position = Convert_Camera2Map(0,ccd_x,ccd_y,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,ELEVATION)
+  Elevation_deviation = Elevation + Ele_Deviation
+  ;position_Deviation = Convert_Camera2Map(0,CCDwidth/2,CCDheight/2,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,Elevation_deviation)
+  position_Deviation  = Convert_Camera2Map(0,ccd_x,ccd_y,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,Elevation_deviation)
+
+  ;经纬度偏差
+  x_deviation = position_Deviation["X"] - position["X"]
+  y_deviation = position_Deviation["Y"] - position["Y"]
+  
+  ;距离偏差
+  ;偏差距离：平面直角坐标
+  offset = (x_deviation ^ 2 + y_deviation ^ 2) ^ 0.5
+  return, offset
+END
+
+
+
+
+
+;绘制高度偏差造成的误差，不同俯仰角度下，
 ;height：                高度
 ;Pitch_low:   最低角度
 ;Pitch_high：    最高角度
 ;h_offset:    高度偏差
-FUNCTION draw_Deviation_FromHeight_InPitchs,height,Pitch_low,Pitch_high,h_offset
+FUNCTION draw_DistanceMeasure_Deviation_FromHeight_InPitchs,c_x_change,c_y_change,height,Pitch_low,Pitch_high,h_offset
   colors=['r','g','b','c','m','y','k','a','b','c']  
-  Pitchs = findgen(Pitch_high - Pitch_low)
+  Pitchs = dindgen(Pitch_high - Pitch_low)
   Pitchs += Pitch_low + 1
   yaw  = 30
   roll = 0
-  offsets = findgen(Pitch_high - Pitch_low)
+  offsets = dindgen(Pitch_high - Pitch_low)
   plots = MAKE_ARRAY(height.LENGTH,1,/OBJ)
   for i = 0 ,height.LENGTH-1 do begin
       for j=0,Pitchs.LENGTH-1 do begin
-          offsets(j)= cal_Deviation_FromHeight(height[i],h_offset,yaw,Pitchs[j],roll);
+          offsets(j)= cal_DistanceMeasure_Deviation_FromHeight(c_x_change,c_y_change,height[i],h_offset,yaw,Pitchs[j],roll);
       endfor  
       ;对象绘图
       if i eq 0 then begin
@@ -22,7 +165,7 @@ FUNCTION draw_Deviation_FromHeight_InPitchs,height,Pitch_low,Pitch_high,h_offset
                               thick = height.LENGTH - i,$
                               colors[i],$
                               Name = strcompress(STRING(height[i])+'米'),$
-                              TITLE = strcompress(['摄像头方向角为'+String(yaw)+'°时在各高度下','相对高程定位偏差（'+STRING(h_offset)+'米）在各俯仰角造成的水平定位误差']),$
+                              TITLE = strcompress(['摄像头方向角为'+String(yaw)+'°时在各高度下','相对高程定位偏差（'+STRING(h_offset)+'米）在测量水平距离时的误差']),$
                               xtitle = '俯仰角（°）',$
                               ytitle = '误差距离（米）',$
                               font_name = 'Microsoft Yahei' $
@@ -39,7 +182,7 @@ FUNCTION draw_Deviation_FromHeight_InPitchs,height,Pitch_low,Pitch_high,h_offset
   endfor
   lege = legend($
     target = plots,$
-    POSITION=[Pitchs[Pitchs.LENGTH -1]-5,offsets[Pitchs.LENGTH -1]],/DATA, $
+    POSITION=[Pitchs[Pitchs.LENGTH -1]-15,offsets[Pitchs.LENGTH -1]-0.001],/DATA, $
     ;POSITION=[1,1],/NORMAL,$
     ;POSITION=[100,100],/DEVICE,$
     font_name = 'Microsoft Yahei',$
@@ -47,7 +190,7 @@ FUNCTION draw_Deviation_FromHeight_InPitchs,height,Pitch_low,Pitch_high,h_offset
     )
 END
 
-;绘制不同高度下，高度偏差造成的误差
+;绘制高度偏差造成的误差，不同高度下，
 ;pitch_camera:摄像头俯仰角
 ;h_lowest：最低高度
 ;h_highest:最高高度
@@ -100,71 +243,8 @@ FUNCTION draw_Deviation_FromHeight_InHeights,pitch_camera,h_lowest,h_highest,H_o
 END
 
 
-;高度偏差的影响
-;H:   高度
-;H_OffSet: 高度误差
-;yaw_plane: 飞机航向角
-;pitch_plane: 飞机俯仰角
-;roll_plane:  飞机横滚角
-FUNCTION cal_Deviation_FromHeight,Elevation,Ele_Deviation,yaw_plane,pitch_plane,roll_plane
-  initial
-  X = 946567.369900695
-  Y = 4354520.61702462
-  FOV_Horizontal = !FOV_HORIZONTAL
-  Fov_vertical = !FOV_VERTICAL
-  f = !F_G
-  CCDwidth = 2.0*tanD(FOV_Horizontal/2.0)*f
-  CCDheight = 2.0*tanD(FOV_VERTICAL/2.0)*f
-  c_x = CCDwidth/2;
-  c_y = CCDheight/2;
-  position = Convert_Camera2Map(0,c_x,c_y,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,ELEVATION)
-  Elevation_deviation = Elevation + Ele_Deviation
-  ;position_Deviation = Convert_Camera2Map(0,CCDwidth/2,CCDheight/2,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,Elevation_deviation)
-  position_Deviation = Convert_Camera2Map(0,c_x,c_y,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,Elevation_deviation)
 
-  ;经纬度偏差
-  x_deviation = position_Deviation["X"]-position["X"]
-  y_deviation = position_Deviation["Y"]-position["Y"]
-  ;距离偏差
-  ;偏差距离：平面直角坐标
-  offset = (x_deviation^2+y_deviation^2)^0.5
-  return, offset
-END
-
-;高度偏差的影响
-;ccd_x 距离中心点的x距离
-;ccd_y 距离中心点的y距离
-;H:   高度
-;H_OffSet: 高度误差
-;yaw_plane: 飞机航向角
-;pitch_plane: 飞机俯仰角
-;roll_plane:  飞机横滚角
-FUNCTION cal_Deviation_From_CCD,ccd_x_propotion,ccd_y_propotion,Elevation,Ele_Deviation,yaw_plane,pitch_plane,roll_plane
-  initial
-  X = 946567.369900695
-  Y = 4354520.61702462
-  FOV_Horizontal = !FOV_HORIZONTAL
-  Fov_vertical = !FOV_VERTICAL
-  f = !F_G
-  CCDwidth = 2.0*tanD(FOV_Horizontal/2.0)*f
-  CCDheight = 2.0*tanD(FOV_VERTICAL/2.0)*f
-  ccd_x = CCDwidth/2*ccd_x_propotion
-  ccd_y = CCDheight/2*ccd_y_propotion
-  position = Convert_Camera2Map(0,ccd_x,ccd_y,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,ELEVATION)
-  Elevation_deviation = Elevation + Ele_Deviation
-  ;position_Deviation = Convert_Camera2Map(0,CCDwidth/2,CCDheight/2,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,Elevation_deviation)
-  position_Deviation = Convert_Camera2Map(0,ccd_x,ccd_y,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,Elevation_deviation)
-
-  ;经纬度偏差
-  x_deviation = position_Deviation["X"]-position["X"]
-  y_deviation = position_Deviation["Y"]-position["Y"]
-  ;距离偏差
-  ;偏差距离：平面直角坐标
-  offset = (x_deviation^2+y_deviation^2)^0.5
-  return, offset
-END
-
-;距相片中心点不同水平距离，高度偏差造成的误差
+;绘制高度偏差造成的误差，距相片中心点不同水平距离，
 ;pitchs:      高度角数组
 ;height：                高度
 ;ccd_x_low:   最近
@@ -217,12 +297,11 @@ FUNCTION draw_Deviation_FromHeight_InCCD_Xs,pitchs,height,ccd_x_low,ccd_x_high,h
 END
 
 
-
-;距相片中心点不同水平距离，高度偏差造成的误差
+;绘制高度偏差造成的误差，距相片中心点不同竖直距离，
 ;pitchs:      高度角数组
 ;height：                高度
-;ccd_x_low:   最近
-;ccd_x_high：    最远
+;ccd_y_low:   最近
+;ccd_y_high：    最远
 ;h_offset:    高度偏差
 FUNCTION draw_Deviation_FromHeight_InCCD_Ys,pitchs,height,ccd_y_low,ccd_y_high,h_offset
   colors=['r','g','b','c','m','y','k','a','b','c']
@@ -278,5 +357,6 @@ FUNCTION draw_deviations
 ;   result = draw_Deviation_FromHeight_InHeights(pitch_camera,30,100,10)
    pitch_camera_ccd = [-90,-85,-80,-75,-70]
 ;   result = draw_Deviation_FromHeight_InCCD_Xs(pitch_camera_ccd,80,0.001,0.0095656747,10)
-   result = draw_Deviation_FromHeight_InCCD_Ys(pitch_camera_ccd,80,0.001,0.0095656747,10)
+;   result = draw_Deviation_FromHeight_InCCD_Ys(pitch_camera_ccd,80,0.001,0.0095656747,10)
+   result = draw_DistanceMeasure_Deviation_FromHeight_InPitchs(0.00001,0.00001,height_camera,-90.0,-70.0,10.0)
 END
