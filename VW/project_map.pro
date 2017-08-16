@@ -105,24 +105,24 @@ FUNCTION Convert_Camera2Map,id,c_x,c_y,c_v,f,YAW,PITCH,ROLL,PLANE_X,PLANE_Y,PLAN
 ;  Position_z = PLANE_Elevation+rate*Position_R["Z"]
 ;  print,'rate:'+String(rate)
 ;  Position = HASH('X',Position_x,'Y',Position_y,'Z',Position_z)
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;---------------三角函数--------------------
-  print,strcompress('*********点:'+String(id)+'************')
+  ;print,strcompress('*********点:'+String(id)+'************')
   ;-----------一.计算正北方向俯仰角变化--------------------
   ;通过（视场角/2),计算目标点的“变化y”
   Fov_vertical_2 = atan(c_y/f)/!DTOR
-  print,'视线与主光轴夹角在竖直面的投影：'+String(Fov_vertical_2);
+  ;print,'视线与主光轴夹角在竖直面的投影：'+String(Fov_vertical_2);
   h_y_tan = PLANE_Elevation*tanD(r_x+Fov_vertical_2)
-  print,'视线与y轴负方向夹角：'+String(r_x+Fov_vertical_2)
-  print,'y轴方向距离：'+String(h_y_tan)
+  ;print,'视线与y轴负方向夹角：'+String(r_x+Fov_vertical_2)
+  ;print,'y轴方向距离：'+String(h_y_tan)
   ;通过勾股定理，计算目标点在“光线”所在面的“变化y（立体）”
   h_y_tan_3d = (PLANE_Elevation^2+h_y_tan^2)^(0.5)  
   
   ;通过（视场角/2),计算目标点的“变化x”  
   FOV_Horizontal_2 = atan(c_x/f)/!DTOR
   h_x_tan = h_y_tan_3d*tanD(FOV_Horizontal_2)
-  print,'视点水平角：'+String(FOV_Horizontal_2)
-  print,'x轴方向距离：'+String(h_x_tan) 
+  ;print,'视点水平角：'+String(FOV_Horizontal_2)
+  ;print,'x轴方向距离：'+String(h_x_tan) 
   
   ;-----------二.计算方向角变化 ----------------------------
   ;目标点在水平面内与o点连线的长度
@@ -134,11 +134,11 @@ FUNCTION Convert_Camera2Map,id,c_x,c_y,c_v,f,YAW,PITCH,ROLL,PLANE_X,PLANE_Y,PLAN
   endif else if(h_y_tan<0 and h_x_tan>0) then begin
     R_Postion_O_Y = 180 + R_Postion_O_Y
   endif  
-  print,'目标点在水平面内与o点连线，与y轴夹角:'+String(R_Postion_O_Y)
+  ;print,'目标点在水平面内与o点连线，与y轴夹角:'+String(R_Postion_O_Y)
     
   ;旋转后角度
   R_Postion_O_Y_Rotate = R_Postion_O_Y + r_z  
-  print,'旋转后角度:'+String(R_Postion_O_Y_Rotate)
+  ;print,'旋转后角度:'+String(R_Postion_O_Y_Rotate)
   ;计算x、y的旋转后的位置
   h_y_tan_yaw = Distance_Postion2O*cosD(R_Postion_O_Y_Rotate)
   h_x_tan_yaw = Distance_Postion2O*sinD(R_Postion_O_Y_Rotate)
@@ -149,11 +149,11 @@ FUNCTION Convert_Camera2Map,id,c_x,c_y,c_v,f,YAW,PITCH,ROLL,PLANE_X,PLANE_Y,PLAN
   Position_x = PLANE_X+h_x_tan_yaw
   Position_y = PLANE_Y+h_y_tan_yaw  
   
-  print,'x:'+String(h_x_tan_yaw)
-  print,'y:'+String(h_y_tan_yaw)
+  ;print,'x:'+String(h_x_tan_yaw)
+  ;print,'y:'+String(h_y_tan_yaw)
   
   Position = HASH('X',Position_x,'Y',Position_y)
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   return,Position
 END
 

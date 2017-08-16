@@ -64,8 +64,8 @@ FUNCTION cal_Deviation_From_CCD,ccd_x_propotion,ccd_y_propotion,Elevation,Ele_De
 END
 
 ;距离量算_高度偏差的影响，不同观测高度、俯仰角
-;c_x_change 水平变化
-;c_y_change 竖直变化
+;c_x_change 水平变化占屏幕宽度的百分比
+;c_y_change 竖直变化占屏幕宽度的百分比
 ;H:   高度
 ;H_OffSet: 高度误差
 ;yaw_plane: 飞机航向角
@@ -84,14 +84,14 @@ FUNCTION cal_DistanceMeasure_Deviation_FromHeight,c_x_change,c_y_change,Elevatio
   c_y = CCDheight/4;
   ;无偏差状态下的距离
   position1 = Convert_Camera2Map(0,c_x,c_y,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,ELEVATION)  
-  position2 = Convert_Camera2Map(0,c_x+c_x_change,c_y+c_y_change,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,ELEVATION)
+  position2 = Convert_Camera2Map(0,c_x + CCDwidth*c_x_change,c_y + CCDheight*c_y_change,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,ELEVATION)
   x_distance = position1["X"]-position2["X"]
   y_distance = position1["Y"]-position2["Y"]
   distance_1_2 = (x_distance ^ 2 + y_distance ^ 2) ^ 0.5
   ;偏差状态下的距离
   Elevation_deviation = Elevation + Ele_Deviation
   position_1_Deviation = Convert_Camera2Map(0,c_x,c_y,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,Elevation_deviation)
-  position_2_Deviation = Convert_Camera2Map(0,c_x+c_x_change,c_y+c_y_change,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,Elevation_deviation)
+  position_2_Deviation = Convert_Camera2Map(0,c_x + CCDwidth*c_x_change,c_y + CCDheight*c_y_change,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,Elevation_deviation)
   x_distance_deviation = position_1_Deviation["X"]-position_2_Deviation["X"]
   y_distance_deviation = position_1_Deviation["Y"]-position_2_Deviation["Y"]
   distance_1_2_deviation = (x_distance_deviation ^ 2 + y_distance_deviation ^ 2) ^ 0.5
@@ -142,6 +142,8 @@ END
 
 
 ;绘制高度偏差造成的误差，不同俯仰角度下，
+;c_x_change 水平变化占屏幕宽度的百分比
+;c_y_change 竖直变化占屏幕宽度的百分比
 ;height：                高度
 ;Pitch_low:   最低角度
 ;Pitch_high：    最高角度
@@ -165,7 +167,9 @@ FUNCTION draw_DistanceMeasure_Deviation_FromHeight_InPitchs,c_x_change,c_y_chang
                               thick = height.LENGTH - i,$
                               colors[i],$
                               Name = strcompress(STRING(height[i])+'米'),$
-                              TITLE = strcompress(['摄像头方向角为'+String(yaw)+'°时在各高度下','相对高程定位偏差（'+STRING(h_offset)+'米）在测量水平距离时的误差']),$
+                              TITLE = strcompress(['摄像头方向角为'+String(yaw)+'°时，在各高度下相对高程定位偏差（'+STRING(h_offset)+'米）',$
+                                                   '在屏幕竖直方向测量距离(横向占比屏幕'+String((c_x_change^2+c_y_change^2)^0.5)+')时的误差']$
+                                                   ),$
                               xtitle = '俯仰角（°）',$
                               ytitle = '误差距离（米）',$
                               font_name = 'Microsoft Yahei' $
@@ -358,5 +362,11 @@ FUNCTION draw_deviations
    pitch_camera_ccd = [-90,-85,-80,-75,-70]
 ;   result = draw_Deviation_FromHeight_InCCD_Xs(pitch_camera_ccd,80,0.001,0.0095656747,10)
 ;   result = draw_Deviation_FromHeight_InCCD_Ys(pitch_camera_ccd,80,0.001,0.0095656747,10)
-   result = draw_DistanceMeasure_Deviation_FromHeight_InPitchs(0.00001,0.00001,height_camera,-90.0,-70.0,10.0)
+   
+   ccd_x_persent = [0.10,0.15,0.20,0.25,0.30,0.35,0.40]   
+   ccd_y_persent = [0.10,0.15,0.20,0.25,0.30,0.35,0.40]
+   for i = 0,ccd_x_persent.LENGTH-1 do begin
+      ;result = draw_DistanceMeasure_Deviation_FromHeight_InPitchs(ccd_x_persent[i],0.00,height_camera,-90.0,-70.0,10.0)      
+      result = draw_DistanceMeasure_Deviation_FromHeight_InPitchs(0.00,ccd_y_persent[i],height_camera,-90.0,-70.0,10.0)
+   endfor
 END
