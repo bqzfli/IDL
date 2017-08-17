@@ -80,8 +80,10 @@ FUNCTION cal_DistanceMeasure_Deviation_FromHeight,c_x_change,c_y_change,Elevatio
   f = !F_G
   CCDwidth  = 2.0*tanD(FOV_Horizontal/2.0)*f
   CCDheight = 2.0*tanD(FOV_VERTICAL  /2.0)*f
-  c_x = CCDwidth /4;
-  c_y = CCDheight/4;
+;  c_x = CCDwidth /4;
+;  c_y = CCDheight/4;
+  c_x = 0.00;
+  c_y = 0.00;
   ;无偏差状态下的距离
   position1 = Convert_Camera2Map(0,c_x,c_y,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,ELEVATION)  
   position2 = Convert_Camera2Map(0,c_x + CCDwidth*c_x_change,c_y + CCDheight*c_y_change,f,f,yaw_plane,pitch_plane,roll_plane,X,Y,ELEVATION)
@@ -138,10 +140,248 @@ FUNCTION cal_DistanceMeasure_Deviation_From_CCD,ccd_x_propotion,ccd_y_propotion,
 END
 
 
+;绘制高度偏差造成的误差(Y)，屏幕中不同水平距离测量(X),不同俯仰角度下(LINE)
+;c_x_change_low  水平量距占屏幕宽度的百分比——最小
+;c_x_change_high 水平量距占屏幕宽度的百分比——最大
+;c_y_change      竖直量距占屏幕宽度的百分比
+;height：                高度
+;Pitchs:      俯仰角
+;h_offset:    高度偏差
+FUNCTION draw_DistanceMeasure_Deviation_FromHeight_InchangesCCDX_InPitchs,c_x_change_low,c_x_change_high,c_y_change,height,Pitchs,h_offset
+  colors=['r','g','b','c','m','y','k','a','b','c']
+  c_x_changes = dindgen(c_x_change_high - c_x_change_low)
+  c_x_changes += c_x_change_low
+  c_x_changes = c_x_changes/100.00
+  yaw  = 30
+  roll = 0
+  offsets = dindgen(c_x_change_high - c_x_change_low)
+  plots = MAKE_ARRAY(Pitchs.LENGTH,1,/OBJ)
+  for i = 0 ,Pitchs.LENGTH-1 do begin
+    for j=0,c_x_changes.LENGTH-1 do begin
+      offsets(j)= cal_DistanceMeasure_Deviation_FromHeight(c_x_changes[j],c_y_change,height,h_offset,yaw,Pitchs[i],roll);
+    endfor
+    ;对象绘图
+    if i eq 0 then begin
+      plots[i] = plot( long(c_x_changes*100),$
+        offsets,$
+        ;thick = c_x_changes.LENGTH - i,$
+        colors[i],$
+        YRANGE = [0,14], $
+        Name = strcompress(STRING(long(Pitchs[i]))+'°'),$
+        TITLE = strcompress(['观测点高程为：'+String(long(height))+'米，方向角为'+String(yaw)+'°高程定位偏差'+STRING(long(h_offset))+'米，',$
+                             '观测镜头俯仰角在' $
+                             +String(long(Pitchs[0])) $
+                             +'°~' $
+                             +String(long(Pitchs[Pitchs.LENGTH-1])) $
+                             +'°之间时的距离量算误差'] $
+                            ),$
+        xtitle = '量算距离占屏幕宽度比例（%）',$
+        ytitle = '误差距离（米）',$
+        font_name = 'Microsoft Yahei' $
+        )
+    endif else begin
+      plots[i] = plot(long(c_x_changes*100),$
+        offsets,$
+        thick = height.LENGTH - i,$
+        colors[i],$
+        Name = strcompress(STRING(long(Pitchs[i]))+'°'),$
+        /OVERPLOT $
+        )
+    endelse
+  endfor
+  lege = legend($
+    target = plots,$
+    POSITION=[c_x_change_high-30,offsets[c_x_changes.LENGTH -1]],/DATA, $
+    ;POSITION=[1,1],/NORMAL,$
+    ;POSITION=[100,100],/DEVICE,$
+    font_name = 'Microsoft Yahei',$
+    /AUTO_TEXT_COLOR $
+    )
+END
+
+
+;绘制高度偏差造成的误差(Y)，屏幕中不同竖直距离测量(X),不同俯仰角度下(LINE)
+;c_x_change       水平量距占屏幕宽度的百分比
+;c_y_change_low   竖直量距占屏幕宽度的百分比——最小
+;c_y_change_high  竖直变化占屏幕宽度的百分比——最大
+;height：                高度
+;Pitchs:      俯仰角
+;h_offset:    高度偏差
+FUNCTION draw_DistanceMeasure_Deviation_FromHeight_InchangesCCDY_InPitchs,c_x_change,c_y_change_low,c_y_change_high,height,Pitchs,h_offset
+  colors=['r','g','b','c','m','y','k','a','b','c']
+  c_y_changes = dindgen(c_y_change_high - c_y_change_low)
+  c_y_changes += c_y_change_low
+  c_y_changes = c_y_changes/100.00
+  yaw  = 30
+  roll = 0
+  offsets = dindgen(c_y_change_high - c_y_change_low)
+  plots = MAKE_ARRAY(Pitchs.LENGTH,1,/OBJ)
+  for i = 0 ,Pitchs.LENGTH-1 do begin
+    for j=0,c_y_changes.LENGTH-1 do begin
+      offsets(j)= cal_DistanceMeasure_Deviation_FromHeight(c_x_change,c_y_changes[j],height,h_offset,yaw,Pitchs[i],roll);
+    endfor
+    ;对象绘图
+    if i eq 0 then begin
+      plots[i] = plot( long(c_y_changes*100),$
+        offsets,$
+        ;thick = c_x_changes.LENGTH - i,$
+        colors[i],$
+        YRANGE = [0,14], $
+        Name = strcompress(STRING(long(Pitchs[i]))+'°'),$
+        TITLE = strcompress(['观测点高程为：'+String(long(height))+'米，方向角为'+String(yaw)+'°高程定位偏差'+STRING(long(h_offset))+'米，',$
+        '观测镜头俯仰角在' $
+        +String(long(Pitchs[0])) $
+        +'°~' $
+        +String(long(Pitchs[Pitchs.LENGTH-1])) $
+        +'°之间时的距离量算误差'] $
+        ),$
+        xtitle = '量算距离占屏幕高度比例（%）',$
+        ytitle = '误差距离（米）',$
+        font_name = 'Microsoft Yahei' $
+        )
+    endif else begin
+      plots[i] = plot(long(c_y_changes*100),$
+        offsets,$
+        thick = height.LENGTH - i,$
+        colors[i],$
+        Name = strcompress(STRING(long(Pitchs[i]))+'°'),$
+        /OVERPLOT $
+        )
+    endelse
+  endfor
+  lege = legend($
+    target = plots,$
+    POSITION=[c_y_change_high-30,offsets[c_y_changes.LENGTH -1]],/DATA, $
+    ;POSITION=[1,1],/NORMAL,$
+    ;POSITION=[100,100],/DEVICE,$
+    font_name = 'Microsoft Yahei',$
+    /AUTO_TEXT_COLOR $
+    )
+END
 
 
 
-;绘制高度偏差造成的误差，不同俯仰角度下，
+
+;绘制高度偏差造成的误差(Y)，不同俯仰角度下(X)，屏幕中不同水平距离测量(line)
+;c_x_changes 水平变化占屏幕宽度的百分比
+;c_y_change 竖直变化占屏幕宽度的百分比
+;height：                高度
+;Pitch_low:   最低角度
+;Pitch_high：    最高角度
+;h_offset:    高度偏差
+FUNCTION draw_DistanceMeasure_Deviation_FromHeight_InPitchs_InchangesCCDX,c_x_changes,c_y_change,height,Pitch_low,Pitch_high,h_offset
+  colors=['r','g','b','c','m','y','k','a','b','c']
+  Pitchs = dindgen(Pitch_high - Pitch_low)
+  Pitchs += Pitch_low + 1
+  yaw  = 30
+  roll = 0
+  offsets = dindgen(Pitch_high - Pitch_low)
+  plots = MAKE_ARRAY(c_x_changes.LENGTH,1,/OBJ)
+  for i = 0 ,c_x_changes.LENGTH-1 do begin
+    for j=0,Pitchs.LENGTH-1 do begin
+      offsets(j)= cal_DistanceMeasure_Deviation_FromHeight(c_x_changes[i],c_y_change,height,h_offset,yaw,Pitchs[j],roll);
+    endfor
+    ;对象绘图
+    if i eq 0 then begin
+      plots[i] = plot(  Pitchs,$
+        offsets,$
+        ;thick = c_x_changes.LENGTH - i,$
+        colors[i],$ 
+        YRANGE = [0,15], $
+        Name = strcompress(STRING(long(c_x_changes[i]*100))+'%'),$
+        TITLE = strcompress(['摄像头方向角为'+String(yaw)+'°时，在各高度下相对高程定位偏差（'+STRING(long(h_offset))+'米）',$
+                             '在屏幕水平方向测量距离(横向占比屏幕' $
+                             +String(long((c_x_changes[0]^2+c_y_change^2)^0.5*100)) $
+                             +'%~' $
+                             +String(long((c_x_changes[c_x_changes.LENGTH-1]^2+c_y_change^2)^0.5*100)) $
+                             +'%)时的误差'] $
+                            ),$
+        xtitle = '俯仰角（°）',$
+        ytitle = '误差距离（米）',$
+        font_name = 'Microsoft Yahei' $
+        )
+    endif else begin
+      plots[i] = plot(Pitchs,$
+        offsets,$
+        thick = height.LENGTH - i,$
+        colors[i],$
+        Name = strcompress(STRING(long(c_x_changes[i]*100))+'%'),$
+        /OVERPLOT $
+        )
+    endelse
+  endfor
+  lege = legend($
+    target = plots,$
+    POSITION=[Pitchs[Pitchs.LENGTH -1]-15,offsets[Pitchs.LENGTH -1]-0.001],/DATA, $
+    ;POSITION=[1,1],/NORMAL,$
+    ;POSITION=[100,100],/DEVICE,$
+    font_name = 'Microsoft Yahei',$
+    /AUTO_TEXT_COLOR $
+    )
+END
+
+
+
+;绘制高度偏差造成的误差(Y)，不同俯仰角度下(X)，屏幕中不同竖直距离测量(LINE)
+;c_x_change 水平变化占屏幕宽度的百分比
+;c_y_changes 竖直变化占屏幕宽度的百分比
+;height：                高度
+;Pitch_low:   最低角度
+;Pitch_high：    最高角度
+;h_offset:    高度偏差
+FUNCTION draw_DistanceMeasure_Deviation_FromHeight_InPitchs_InchangesCCDY,c_x_change,c_y_changes,height,Pitch_low,Pitch_high,h_offset
+  colors=['r','g','b','c','m','y','k','a','b','c']
+  Pitchs = dindgen(Pitch_high - Pitch_low)
+  Pitchs += Pitch_low + 1
+  yaw  = 30
+  roll = 0
+  offsets = dindgen(Pitch_high - Pitch_low)
+  plots = MAKE_ARRAY(c_y_changes.LENGTH,1,/OBJ)
+  for i = 0 ,c_y_changes.LENGTH-1 do begin
+    for j=0,Pitchs.LENGTH-1 do begin
+      offsets(j)= cal_DistanceMeasure_Deviation_FromHeight(c_x_change,c_y_changes[i],height,h_offset,yaw,Pitchs[j],roll);
+    endfor
+    ;对象绘图
+    if i eq 0 then begin
+      plots[i] = plot(  Pitchs,$
+        offsets,$
+        ;thick = c_x_changes.LENGTH - i,$
+        colors[i],$
+        YRANGE = [0,15], $
+        Name = strcompress(STRING(long(c_y_changes[i]*100))+'%'),$
+        TITLE = strcompress(['摄像头方向角为'+String(yaw)+'°时，在各高度下相对高程定位偏差（'+STRING(long(h_offset))+'米）',$
+                             '在屏幕竖直方向测量距离(横向占比屏幕' $
+                             +String(long((c_x_change^2+c_y_changes[0]^2)^0.5*100)) $
+                             +'%~' $
+                             +String(long((c_x_change^2+c_y_changes[c_y_changes.LENGTH-1]^2)^0.5*100)) $
+                             +'%)时的误差'] $
+                             ),$
+        xtitle = '俯仰角（°）',$
+        ytitle = '误差距离（米）',$
+        font_name = 'Microsoft Yahei' $
+        )
+    endif else begin
+      plots[i] = plot(Pitchs,$
+        offsets,$
+        thick = height.LENGTH - i,$
+        colors[i],$
+        Name = strcompress(STRING(long(c_y_changes[i]*100))+'%'),$
+        /OVERPLOT $
+        )
+    endelse
+  endfor
+  lege = legend($
+    target = plots,$
+    POSITION=[Pitchs[Pitchs.LENGTH -1]-15,offsets[Pitchs.LENGTH -1]-0.001],/DATA, $
+    ;POSITION=[1,1],/NORMAL,$
+    ;POSITION=[100,100],/DEVICE,$
+    font_name = 'Microsoft Yahei',$
+    /AUTO_TEXT_COLOR $
+    )
+END
+
+
+;绘制高度偏差造成的误差，不同俯仰角度下，不同高度下测量
 ;c_x_change 水平变化占屏幕宽度的百分比
 ;c_y_change 竖直变化占屏幕宽度的百分比
 ;height：                高度
@@ -168,7 +408,7 @@ FUNCTION draw_DistanceMeasure_Deviation_FromHeight_InPitchs,c_x_change,c_y_chang
                               colors[i],$
                               Name = strcompress(STRING(height[i])+'米'),$
                               TITLE = strcompress(['摄像头方向角为'+String(yaw)+'°时，在各高度下相对高程定位偏差（'+STRING(h_offset)+'米）',$
-                                                   '在屏幕竖直方向测量距离(横向占比屏幕'+String((c_x_change^2+c_y_change^2)^0.5)+')时的误差']$
+                                                   '在屏幕竖直方向测量距离(屏幕竖向占比'+String(long((c_x_change^2+c_y_change^2)^0.5*100))+'%)时的误差']$
                                                    ),$
                               xtitle = '俯仰角（°）',$
                               ytitle = '误差距离（米）',$
@@ -362,11 +602,25 @@ FUNCTION draw_deviations
    pitch_camera_ccd = [-90,-85,-80,-75,-70]
 ;   result = draw_Deviation_FromHeight_InCCD_Xs(pitch_camera_ccd,80,0.001,0.0095656747,10)
 ;   result = draw_Deviation_FromHeight_InCCD_Ys(pitch_camera_ccd,80,0.001,0.0095656747,10)
-   
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
    ccd_x_persent = [0.10,0.15,0.20,0.25,0.30,0.35,0.40]   
-   ccd_y_persent = [0.10,0.15,0.20,0.25,0.30,0.35,0.40]
+   ccd_y_persent = [0.10,0.15,0.20,0.25,0.30,0.35,0.40] 
+   ccd_y_persent = [-0.10,-0.15,-0.20,-0.25,-0.30,-0.35,-0.40]  
    for i = 0,ccd_x_persent.LENGTH-1 do begin
       ;result = draw_DistanceMeasure_Deviation_FromHeight_InPitchs(ccd_x_persent[i],0.00,height_camera,-90.0,-70.0,10.0)      
       result = draw_DistanceMeasure_Deviation_FromHeight_InPitchs(0.00,ccd_y_persent[i],height_camera,-90.0,-70.0,10.0)
    endfor
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;---------------绘制量算距离误差  ----距离误差（Y）、俯仰角（X）、量算距离占比（LINE）-------------
+;   result = draw_DistanceMeasure_Deviation_FromHeight_InPitchs_InchangesCCDX(ccd_x_persent,0.00,80,-90.0,-70.0,10.0)   
+;   result = draw_DistanceMeasure_Deviation_FromHeight_InPitchs_InchangesCCDY(0.00,ccd_y_persent,80,-90.0,-70.0,10.0)   
+;   ccd_y_persent = [-0.10,-0.15,-0.20,-0.25,-0.30,-0.35,-0.40]
+;   result = draw_DistanceMeasure_Deviation_FromHeight_InPitchs_InchangesCCDY(0.00,ccd_y_persent,80,-90.0,-70.0,10.0)
+
+;;;;;;---------------绘制量算距离误差  ----距离误差（Y）、量算距离占比（X）、俯仰角（LINE）-------------
+;   pitch_camera = [-90,-85,-80,-75,-70]
+;   result = draw_DistanceMeasure_Deviation_FromHeight_InchangesCCDX_InPitchs(-40.0,40.0,0.00,90,pitch_camera,10.0)
+;   result = draw_DistanceMeasure_Deviation_FromHeight_InchangesCCDY_InPitchs(0.00,-40.0,40.0,90,pitch_camera,10.0)
+;   result = draw_DistanceMeasure_Deviation_FromHeight_InchangesCCDY_InPitchs(0.00,-40.0,-1,90,pitch_camera,10.0)
+;   result = draw_DistanceMeasure_Deviation_FromHeight_InchangesCCDY_InPitchs(0.00,0.0,40.0,90,pitch_camera,10.0)
 END
